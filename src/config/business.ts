@@ -49,7 +49,20 @@ export const business = {
     )}`;
   },
   get siteUrl() {
-    return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+    // Build-time safety: `new URL(raw)` throws for relative/invalid
+    // values (e.g. "nexarotech.com"), which crashes Vercel's page-data
+    // collection ("Failed to collect page data for /_not-found").
+    // Normalize bare domains to https and fall back on garbage input.
+    const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+    if (raw) {
+      const candidate = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+      try {
+        return new URL(candidate).origin;
+      } catch {
+        // invalid value — fall through to the localhost default
+      }
+    }
+    return "http://localhost:3000";
   },
 };
 
